@@ -1,135 +1,468 @@
-import { cn } from "@/lib/utils";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+import * as z from "zod";
+import { Eye, EyeOff } from "lucide-react";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
-type SignupFormProps = React.ComponentProps<"div"> & {
-  onCreateAccount?: () => void;
-  onNavigateToLogin?: () => void;
-};
+type SignupFormProps = ComponentProps<"div">;
 
-export function SignupForm({
-  className,
-  onCreateAccount,
-  onNavigateToLogin,
-  ...props
-}: SignupFormProps) {
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onCreateAccount?.();
+const signupFormSchema = z
+  .object({
+    profileImage: z.custom<File | null>(
+      (file) => file instanceof File,
+      "Profile image is required.",
+    ),
+    name: z.string().trim().min(1, "Name is required."),
+    email: z
+      .string()
+      .trim()
+      .min(1, "Email is required.")
+      .regex(
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        "Please enter a valid email address.",
+      ),
+    password: z
+      .string()
+      .min(1, "Password is required.")
+      .min(8, "Password must be at least 8 characters long."),
+    confirmPassword: z.string().min(1, "Please confirm your password."),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
+type SignupFormValues = z.infer<typeof signupFormSchema>;
+
+export function SignupForm({ className, ...props }: SignupFormProps) {
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState("");
+  const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState("");
+  const [namePreview, setNamePreview] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const form = useForm<SignupFormValues>({
+    resolver: zodResolver(signupFormSchema),
+    defaultValues: {
+      profileImage: null,
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
+
+  useEffect(() => {
+    return () => {
+      if (profileImagePreviewUrl) {
+        URL.revokeObjectURL(profileImagePreviewUrl);
+      }
+    };
+  }, [profileImagePreviewUrl]);
+
+  const handlePickImage = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleNavigateToLogin = (
-    event: React.MouseEvent<HTMLAnchorElement>,
+  const handleProfileImageChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    onChange: (file: File | null) => void,
   ) => {
-    event.preventDefault();
-    onNavigateToLogin?.();
+    const file = event.target.files?.[0] ?? null;
+    setSelectedFileName(file?.name ?? "");
+
+    if (profileImagePreviewUrl) {
+      URL.revokeObjectURL(profileImagePreviewUrl);
+    }
+
+    if (file) {
+      setProfileImagePreviewUrl(URL.createObjectURL(file));
+    } else {
+      setProfileImagePreviewUrl("");
+    }
+
+    onChange(file);
   };
+
+  const onSubmit = () => {
+    navigate("/dashboard");
+  };
+
+  const initials =
+    namePreview
+      .trim()
+      .split(/\s+/)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U";
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8" onSubmit={handleSubmit}>
+          <form
+            className="p-6 md:p-8"
+            onSubmit={form.handleSubmit(onSubmit)}
+            id="signup-form"
+          >
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Create your account</h1>
+                <img
+                  src="/icon.png"
+                  alt="IssueFlow Logo"
+                  className="mb-2 h-18"
+                />
+                <h1 className="text-2xl font-bold">
+                  Create your IssueFlow account
+                </h1>
                 <p className="text-sm text-balance text-muted-foreground">
-                  Enter your email below to create your account
+                  Enter your details below to create your account
                 </p>
               </div>
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
+
+              <Controller
+                name="profileImage"
+                control={form.control}
+                render={({ field, fieldState }) => {
+                  const showError =
+                    fieldState.invalid &&
+                    (fieldState.isTouched || form.formState.submitCount > 0);
+
+                  return (
+                    <Field className="items-center" data-invalid={showError}>
+                      <div className="flex justify-center">
+                        <FieldLabel
+                          htmlFor="profile-image"
+                          className="self-center"
+                        >
+                          Profile Image
+                        </FieldLabel>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handlePickImage}
+                        className="rounded-full flex items-center justify-center transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        aria-label="Pick profile image"
+                      >
+                        <Avatar className="size-20">
+                          <AvatarImage
+                            src={profileImagePreviewUrl}
+                            alt="Profile preview"
+                          />
+                          <AvatarFallback>{initials}</AvatarFallback>
+                        </Avatar>
+                      </button>
+
+                      <Input
+                        id="profile-image"
+                        name={field.name}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onBlur={field.onBlur}
+                        ref={(node) => {
+                          fileInputRef.current = node;
+                          field.ref(node);
+                        }}
+                        onChange={(event) =>
+                          handleProfileImageChange(event, field.onChange)
+                        }
+                      />
+
+                      <div className="mt-2 flex flex-col items-center gap-2">
+                        <FieldDescription className="text-center ">
+                          {selectedFileName
+                            ? `Profile image selected`
+                            : "Tap avatar or button to pick an image from your device."}
+                        </FieldDescription>
+
+                        <div
+                          className={cn(
+                            "overflow-hidden transition-all duration-200",
+                            showError
+                              ? "max-h-16 translate-y-0 opacity-100"
+                              : "max-h-0 -translate-y-1 opacity-0",
+                          )}
+                        >
+                          {showError ? (
+                            <FieldError errors={[fieldState.error]} />
+                          ) : null}
+                        </div>
+                      </div>
+                    </Field>
+                  );
+                }}
+              />
+
+              <Controller
+                name="name"
+                control={form.control}
+                render={({ field, fieldState }) => {
+                  const showError =
+                    fieldState.invalid &&
+                    (fieldState.isTouched || form.formState.submitCount > 0);
+
+                  return (
+                    <Field data-invalid={showError}>
+                      <FieldLabel htmlFor="name">Name</FieldLabel>
+                      <Input
+                        {...field}
+                        id="name"
+                        type="text"
+                        placeholder="John Doe"
+                        autoComplete="name"
+                        aria-invalid={showError}
+                        onChange={(event) => {
+                          field.onChange(event);
+                          setNamePreview(event.target.value);
+                        }}
+                      />
+                      <div
+                        className={cn(
+                          "overflow-hidden transition-all duration-200",
+                          showError
+                            ? "mt-1 max-h-16 translate-y-0 opacity-100"
+                            : "max-h-0 -translate-y-1 opacity-0",
+                        )}
+                      >
+                        {showError ? (
+                          <FieldError errors={[fieldState.error]} />
+                        ) : null}
+                      </div>
+                    </Field>
+                  );
+                }}
+              />
+
+              <Controller
+                name="email"
+                control={form.control}
+                render={({ field, fieldState }) => {
+                  const showError =
+                    fieldState.invalid &&
+                    (fieldState.isTouched || form.formState.submitCount > 0);
+
+                  return (
+                    <Field data-invalid={showError}>
+                      <FieldLabel htmlFor="email">Email</FieldLabel>
+                      <Input
+                        {...field}
+                        id="email"
+                        type="email"
+                        placeholder="m@example.com"
+                        autoComplete="email"
+                        aria-invalid={showError}
+                      />
+                      <div
+                        className={cn(
+                          "overflow-hidden transition-all duration-200",
+                          showError
+                            ? "mt-1 max-h-16 translate-y-0 opacity-100"
+                            : "max-h-0 -translate-y-1 opacity-0",
+                        )}
+                      >
+                        {showError ? (
+                          <FieldError errors={[fieldState.error]} />
+                        ) : null}
+                      </div>
+                    </Field>
+                  );
+                }}
+              />
+
+              <Field className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Controller
+                  name="password"
+                  control={form.control}
+                  render={({ field, fieldState }) => {
+                    const showError =
+                      fieldState.invalid &&
+                      (fieldState.isTouched || form.formState.submitCount > 0);
+
+                    return (
+                      <Field data-invalid={showError}>
+                        <FieldLabel htmlFor="password">Password</FieldLabel>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            aria-invalid={showError}
+                            className="pr-10"
+                            onChange={(event) => {
+                              field.onChange(event);
+                              void form.trigger("confirmPassword");
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                            aria-label={
+                              showPassword ? "Hide password" : "Show password"
+                            }
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        <div
+                          className={cn(
+                            "overflow-hidden transition-all duration-200",
+                            showError
+                              ? "mt-1 max-h-16 translate-y-0 opacity-100"
+                              : "max-h-0 -translate-y-1 opacity-0",
+                          )}
+                        >
+                          {showError ? (
+                            <FieldError errors={[fieldState.error]} />
+                          ) : null}
+                        </div>
+                      </Field>
+                    );
+                  }}
                 />
-                <FieldDescription>
-                  We&apos;ll use this to contact you. We will not share your
-                  email with anyone else.
-                </FieldDescription>
+
+                <Controller
+                  name="confirmPassword"
+                  control={form.control}
+                  render={({ field, fieldState }) => {
+                    const showError =
+                      fieldState.invalid &&
+                      (fieldState.isTouched || form.formState.submitCount > 0);
+
+                    return (
+                      <Field data-invalid={showError}>
+                        <FieldLabel htmlFor="confirm-password">
+                          Confirm Password
+                        </FieldLabel>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            id="confirm-password"
+                            type={showConfirmPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            aria-invalid={showError}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowConfirmPassword((prev) => !prev)
+                            }
+                            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                            aria-label={
+                              showConfirmPassword
+                                ? "Hide confirm password"
+                                : "Show confirm password"
+                            }
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        <div
+                          className={cn(
+                            "overflow-hidden transition-all duration-200",
+                            showError
+                              ? "mt-1 max-h-16 translate-y-0 opacity-100"
+                              : "max-h-0 -translate-y-1 opacity-0",
+                          )}
+                        >
+                          {showError ? (
+                            <FieldError errors={[fieldState.error]} />
+                          ) : null}
+                        </div>
+                      </Field>
+                    );
+                  }}
+                />
               </Field>
+
+              <FieldDescription>
+                Password must be at least 8 characters long.
+              </FieldDescription>
+
               <Field>
-                <Field className="grid grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input id="password" type="password" required />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="confirm-password">
-                      Confirm Password
-                    </FieldLabel>
-                    <Input id="confirm-password" type="password" required />
-                  </Field>
-                </Field>
-                <FieldDescription>
-                  Must be at least 8 characters long.
-                </FieldDescription>
-              </Field>
-              <Field>
-                <Button type="submit">Create Account</Button>
-              </Field>
-              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-                Or continue with
-              </FieldSeparator>
-              <Field className="grid grid-cols-3 gap-4">
-                <Button variant="outline" type="button">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path
-                      d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  <span className="sr-only">Sign up with Apple</span>
-                </Button>
-                <Button variant="outline" type="button">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path
-                      d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  <span className="sr-only">Sign up with Google</span>
-                </Button>
-                <Button variant="outline" type="button">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path
-                      d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  <span className="sr-only">Sign up with Meta</span>
+                <Button
+                  type="submit"
+                  form="signup-form"
+                  className="bg-[#9D5FD4] text-white hover:bg-[#8B4FC3]"
+                >
+                  Create Account
                 </Button>
               </Field>
+
               <FieldDescription className="text-center">
                 Already have an account?{" "}
-                <a href="#" onClick={handleNavigateToLogin}>
+                <Link
+                  to="/login"
+                  className="font-medium text-[#9D5FD4]! transition-colors hover:text-[#8B4FC3]!"
+                >
                   Sign in
-                </a>
+                </Link>
               </FieldDescription>
             </FieldGroup>
           </form>
+
           <div className="relative hidden bg-muted md:block">
             <img
-              src="/placeholder.svg"
-              alt="Image"
+              src="./signup-banner.jpg"
+              alt="Signup Banner"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />
           </div>
         </CardContent>
       </Card>
+
       <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+        By clicking continue, you agree to our{" "}
+        <Link
+          to="/terms-and-conditions"
+          className="text-[#9D5FD4]! transition-colors hover:text-[#8B4FC3]!"
+        >
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link
+          to="/privacy-policies"
+          className="text-[#9D5FD4]! transition-colors hover:text-[#8B4FC3]!"
+        >
+          Privacy Policy
+        </Link>
+        .
       </FieldDescription>
     </div>
   );

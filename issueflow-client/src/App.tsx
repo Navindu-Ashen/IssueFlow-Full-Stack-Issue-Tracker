@@ -1,72 +1,55 @@
-import { useEffect, useState } from "react";
-import DashboardPage from "@/pages/dashboard/page";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "@/components/ui/sonner";
+
+// Layouts
+import AuthLayout from "@/components/layout/AuthLayout";
+import MainLayout from "@/components/layout/MainLayout";
+
+// Pages
 import LoginPage from "@/pages/login/page";
 import SignupPage from "@/pages/signup/page";
+import DashboardPage from "@/pages/dashboard/page";
+import IssuesPage from "@/pages/issues/page";
+import PrivacyPoliciesPage from "@/pages/privacy-policies/page";
+import TermsAndConditionsPage from "@/pages/terms-and-conditions/page";
+import NotFoundPage from "@/pages/not-found/page";
 
-type AppRoute = "/login" | "/signup" | "/dashboard";
-
-const normalizeRoute = (pathname: string): AppRoute => {
-  const cleanPath = pathname.replace(/\/+$/, "") || "/";
-
-  if (cleanPath === "/signup") return "/signup";
-  if (cleanPath === "/dashboard") return "/dashboard";
-  return "/login";
-};
+// Protected Route Wrapper
+import ProtectedRoute from "@/components/shared/ProtectedRoute";
 
 function App() {
-  const [route, setRoute] = useState<AppRoute>(() => {
-    if (typeof window === "undefined") return "/login";
-    return normalizeRoute(window.location.pathname);
-  });
-
-  const navigate = (nextRoute: AppRoute, replace = false) => {
-    if (typeof window === "undefined") return;
-
-    if (replace) {
-      window.history.replaceState(null, "", nextRoute);
-    } else {
-      window.history.pushState(null, "", nextRoute);
-    }
-
-    setRoute(nextRoute);
-  };
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const currentPath = window.location.pathname.replace(/\/+$/, "") || "/";
-
-    // Force unknown paths to /login without triggering a state update in the effect body
-    if (!["/login", "/signup", "/dashboard"].includes(currentPath)) {
-      window.history.replaceState(null, "", "/login");
-    }
-
-    const handlePopState = () => {
-      setRoute(normalizeRoute(window.location.pathname));
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  if (route === "/dashboard") {
-    return <DashboardPage />;
-  }
-
-  if (route === "/signup") {
-    return (
-      <SignupPage
-        onCreateAccount={() => navigate("/dashboard")}
-        onNavigateToLogin={() => navigate("/login")}
-      />
-    );
-  }
-
   return (
-    <LoginPage
-      onLogin={() => navigate("/dashboard")}
-      onNavigateToSignup={() => navigate("/signup")}
-    />
+    <Router>
+      <Routes>
+        {/* Public Authentication Routes */}
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+        </Route>
+
+        {/* Protected Application Routes */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          {/* Redirect root to dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/issues" element={<IssuesPage />} />
+          <Route path="/privacy-policies" element={<PrivacyPoliciesPage />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />
+        </Route>
+
+        {/* Catch-all 404 Route */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+
+      {/* Global toast notifications */}
+      <Toaster position="top-right" />
+    </Router>
   );
 }
 

@@ -1,18 +1,10 @@
 import { LoginForm } from "@/components/login-form";
 
-type LoginPageProps = {
-  onLogin?: () => void;
-  onNavigateToSignup?: () => void;
-};
-
-export default function LoginPage({
-  onLogin,
-  onNavigateToSignup,
-}: LoginPageProps) {
+export default function LoginPage() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center bg-muted p-6 md:p-10">
-      <div className="w-full max-w-sm md:max-w-4xl">
-        <LoginForm onLogin={onLogin} onNavigateToSignup={onNavigateToSignup} />
+    <div className="z-10 w-full max-w-sm md:max-w-4xl">
+      <div className="rounded-2xl border border-[#9D5FD4]/20 bg-white/90 p-2 shadow-[0_10px_40px_-15px_rgba(157,95,212,0.45)] backdrop-blur">
+        <LoginForm />
       </div>
     </div>
   );
