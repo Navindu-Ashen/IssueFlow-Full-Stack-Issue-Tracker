@@ -28,21 +28,13 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import * as authService from "@/services/authService";
 
 type ForgotStep = "email" | "otp" | "password" | "success";
 
 type ForgotPasswordDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSendOtp?: (email: string) => void | Promise<void>;
-  onResendOtp?: (email: string) => void | Promise<void>;
-  onVerifyOtp?: (email: string, otp: string) => boolean | Promise<boolean>;
-  onResetPassword?: (
-    email: string,
-    otp: string,
-    newPassword: string,
-  ) => boolean | Promise<boolean>;
-  onSuccess?: (email: string) => void;
 };
 
 const OTP_LENGTH = 6;
@@ -88,17 +80,13 @@ function formatSeconds(totalSeconds: number) {
 export function ForgotPasswordDialog({
   open,
   onOpenChange,
-  onSendOtp,
-  onResendOtp,
-  onVerifyOtp,
-  onResetPassword,
-  onSuccess,
 }: ForgotPasswordDialogProps) {
   const [forgotStep, setForgotStep] = useState<ForgotStep>("email");
   const [resetEmail, setResetEmail] = useState("");
   const [resetOtp, setResetOtp] = useState("");
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(OTP_EXPIRY_SECONDS);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetToken, setResetToken] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -133,6 +121,7 @@ export function ForgotPasswordDialog({
     setResetOtp("");
     setOtpSecondsLeft(OTP_EXPIRY_SECONDS);
     setIsSubmitting(false);
+    setResetToken("");
     setShowNewPassword(false);
     setShowConfirmPassword(false);
     emailForm.reset({ email: "" });
@@ -165,11 +154,13 @@ export function ForgotPasswordDialog({
 
     try {
       setIsSubmitting(true);
-      await onSendOtp?.(email);
+      await authService.requestOtp(email);
       setResetEmail(email);
       setResetOtp("");
       setOtpSecondsLeft(OTP_EXPIRY_SECONDS);
       setForgotStep("otp");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send OTP");
     } finally {
       setIsSubmitting(false);
     }
@@ -181,14 +172,12 @@ export function ForgotPasswordDialog({
 
     try {
       setIsSubmitting(true);
-      if (onResendOtp) {
-        await onResendOtp(email);
-      } else {
-        await onSendOtp?.(email);
-      }
+      await authService.requestOtp(email);
       setResetOtp("");
       setOtpSecondsLeft(OTP_EXPIRY_SECONDS);
       toast.success("A new OTP has been sent to your email.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to resend OTP");
     } finally {
       setIsSubmitting(false);
     }
@@ -199,14 +188,12 @@ export function ForgotPasswordDialog({
 
     try {
       setIsSubmitting(true);
-      const canProceed = onVerifyOtp
-        ? await onVerifyOtp(resetEmail.trim(), resetOtp)
-        : true;
-
-      if (canProceed !== false) {
-        passwordForm.reset({ newPassword: "", confirmPassword: "" });
-        setForgotStep("password");
-      }
+      const res = await authService.validateOtp(resetEmail.trim(), resetOtp);
+      setResetToken(res.resetToken);
+      passwordForm.reset({ newPassword: "", confirmPassword: "" });
+      setForgotStep("password");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Invalid OTP");
     } finally {
       setIsSubmitting(false);
     }
@@ -215,14 +202,12 @@ export function ForgotPasswordDialog({
   const handleResetPassword = async (values: ForgotPasswordValues) => {
     try {
       setIsSubmitting(true);
-      const canProceed = onResetPassword
-        ? await onResetPassword(resetEmail.trim(), resetOtp, values.newPassword)
-        : true;
-
-      if (canProceed !== false) {
-        setForgotStep("success");
-        onSuccess?.(resetEmail.trim());
-      }
+      await authService.resetPassword(resetToken, values.newPassword);
+      setForgotStep("success");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to reset password",
+      );
     } finally {
       setIsSubmitting(false);
     }

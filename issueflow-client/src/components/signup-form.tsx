@@ -8,7 +8,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import * as z from "zod";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import * as authService from "@/services/authService";
+import { useAuthStore } from "@/stores/authStore";
 
 type SignupFormProps = ComponentProps<"div">;
 
@@ -61,6 +64,8 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
   const [namePreview, setNamePreview] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const setUser = useAuthStore((s) => s.setUser);
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
@@ -107,8 +112,32 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
     onChange(file);
   };
 
-  const onSubmit = () => {
-    navigate("/dashboard");
+  const onSubmit = async (values: SignupFormValues) => {
+    try {
+      setIsSubmitting(true);
+
+      let finalProfilePictureUrl = "";
+
+      if (values.profileImage) {
+        const uploadData = await authService.uploadImage(values.profileImage);
+        finalProfilePictureUrl = uploadData.imageUrl;
+      }
+
+      const res = await authService.register({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        profilePictureUrl: finalProfilePictureUrl,
+      });
+      setUser(res.user);
+      navigate("/dashboard");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Registration failed",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const initials =
@@ -420,8 +449,13 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
                   type="submit"
                   form="signup-form"
                   className="bg-[#9D5FD4] text-white hover:bg-[#8B4FC3]"
+                  disabled={isSubmitting}
                 >
-                  Create Account
+                  {isSubmitting ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
               </Field>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 
 import {
   Card,
@@ -15,16 +15,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-
-const chartData = [
-  { date: "2024-06-24", issues: 9 },
-  { date: "2024-06-25", issues: 12 },
-  { date: "2024-06-26", issues: 7 },
-  { date: "2024-06-27", issues: 14 },
-  { date: "2024-06-28", issues: 11 },
-  { date: "2024-06-29", issues: 10 },
-  { date: "2024-06-30", issues: 13 },
-];
+import { useAnalyticsStore } from "@/stores/analyticsStore";
 
 const chartConfig = {
   issues: {
@@ -34,6 +25,13 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function ChartAreaInteractive() {
+  const { issuesCreatedLast7Days } = useAnalyticsStore();
+
+  const chartData = (issuesCreatedLast7Days?.daily ?? []).map((d) => ({
+    date: d.date,
+    issues: d.count,
+  }));
+
   return (
     <Card className="border-[#9D5FD4]/20">
       <CardHeader>
@@ -46,7 +44,22 @@ export function ChartAreaInteractive() {
           config={chartConfig}
           className="aspect-auto h-[260px] w-full"
         >
-          <LineChart data={chartData} margin={{ left: 8, right: 8 }}>
+          <AreaChart data={chartData} margin={{ left: 8, right: 8 }}>
+            <defs>
+              <linearGradient id="fillIssues" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor="var(--color-issues)"
+                  stopOpacity={0.3}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="var(--color-issues)"
+                  stopOpacity={0.02}
+                />
+              </linearGradient>
+            </defs>
+
             <CartesianGrid vertical={false} />
 
             <XAxis
@@ -77,15 +90,16 @@ export function ChartAreaInteractive() {
               }
             />
 
-            <Line
+            <Area
               type="monotone"
               dataKey="issues"
               stroke="var(--color-issues)"
               strokeWidth={3}
+              fill="url(#fillIssues)"
               dot={{ r: 3, fill: "var(--color-issues)" }}
               activeDot={{ r: 5 }}
             />
-          </LineChart>
+          </AreaChart>
         </ChartContainer>
       </CardContent>
     </Card>

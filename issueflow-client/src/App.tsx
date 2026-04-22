@@ -1,11 +1,14 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 
-// Layouts
 import AuthLayout from "@/components/layout/AuthLayout";
 import MainLayout from "@/components/layout/MainLayout";
 
-// Pages
 import LoginPage from "@/pages/login/page";
 import SignupPage from "@/pages/signup/page";
 import DashboardPage from "@/pages/dashboard/page";
@@ -14,20 +17,17 @@ import PrivacyPoliciesPage from "@/pages/privacy-policies/page";
 import TermsAndConditionsPage from "@/pages/terms-and-conditions/page";
 import NotFoundPage from "@/pages/not-found/page";
 
-// Protected Route Wrapper
 import ProtectedRoute from "@/components/shared/ProtectedRoute";
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Authentication Routes */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
         </Route>
 
-        {/* Protected Application Routes */}
         <Route
           element={
             <ProtectedRoute>
@@ -35,19 +35,19 @@ function App() {
             </ProtectedRoute>
           }
         >
-          {/* Redirect root to dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/issues" element={<IssuesPage />} />
           <Route path="/privacy-policies" element={<PrivacyPoliciesPage />} />
-          <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />
+          <Route
+            path="/terms-and-conditions"
+            element={<TermsAndConditionsPage />}
+          />
         </Route>
 
-        {/* Catch-all 404 Route */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
-      {/* Global toast notifications */}
       <Toaster position="top-right" />
     </Router>
   );

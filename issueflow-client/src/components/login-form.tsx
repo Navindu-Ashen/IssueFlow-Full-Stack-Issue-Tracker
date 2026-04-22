@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import * as z from "zod";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle } from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ForgotPasswordDialog } from "@/components/forgot-password-dialog";
+import * as authService from "@/services/authService";
+import { useAuthStore } from "@/stores/authStore";
 
 type LoginFormProps = ComponentProps<"div">;
 
@@ -33,8 +36,10 @@ type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 export function LoginForm({ className, ...props }: LoginFormProps) {
   const navigate = useNavigate();
+  const setUser = useAuthStore((s) => s.setUser);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -46,8 +51,17 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     reValidateMode: "onChange",
   });
 
-  const onSubmit = () => {
-    navigate("/dashboard");
+  const onSubmit = async (values: LoginFormValues) => {
+    try {
+      setIsSubmitting(true);
+      const res = await authService.login(values);
+      setUser(res.user);
+      navigate("/dashboard");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -155,8 +169,13 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                   type="submit"
                   form="login-form"
                   className="bg-[#9D5FD4] text-white hover:bg-[#8B4FC3]"
+                  disabled={isSubmitting}
                 >
-                  Login
+                  {isSubmitting ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Login"
+                  )}
                 </Button>
               </Field>
 
