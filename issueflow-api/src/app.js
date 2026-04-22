@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db.config.js";
 import authRoutes from "./routes/auth.routes.js";
+import issueRoutes from "./routes/issue.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
 
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger.config.js";
@@ -22,6 +24,8 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/v1/api/auth", authRoutes);
+app.use("/v1/api/issues", issueRoutes);
+app.use("/v1/api/analytics", analyticsRoutes);
 
 const PORT = process.env.PORT || 3001;
 

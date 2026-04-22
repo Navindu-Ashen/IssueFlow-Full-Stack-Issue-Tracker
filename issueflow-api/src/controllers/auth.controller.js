@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import sharp from "sharp";
 import User from "../models/User.js";
 
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET;
@@ -16,6 +18,45 @@ const RESET_TOKEN_EXPIRY_MINUTES = Number(
 
 const OTP_EXPIRY_MS = OTP_EXPIRY_MINUTES * 60 * 1000;
 const RESET_TOKEN_EXPIRY_MS = RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000;
+
+const CLOUDINARY_UPLOAD_URL = process.env.CLOUDINARY_UPLOAD_URL;
+const CLOUDINARY_FOLDER = process.env.CLOUDINARY_FOLDER || "";
+const MAX_UPLOAD_SIZE_BYTES = Number(
+  process.env.IMAGE_UPLOAD_MAX_SIZE_BYTES || 5 * 1024 * 1024,
+);
+
+const sha1 = (value) => crypto.createHash("sha1").update(value).digest("hex");
+
+const resolveCloudinaryConfig = () => {
+  if (!CLOUDINARY_UPLOAD_URL) return null;
+
+  if (CLOUDINARY_UPLOAD_URL.startsWith("cloudinary://")) {
+    try {
+      const parsed = new URL(CLOUDINARY_UPLOAD_URL);
+      const apiKey = decodeURIComponent(parsed.username || "");
+      const apiSecret = decodeURIComponent(parsed.password || "");
+      const cloudName = parsed.hostname;
+
+      if (!apiKey || !apiSecret || !cloudName) {
+        return null;
+      }
+
+      return {
+        uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        apiKey,
+        apiSecret,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  return {
+    uploadUrl: CLOUDINARY_UPLOAD_URL,
+    apiKey: null,
+    apiSecret: null,
+  };
+};
 
 const otpStoreByEmail = new Map();
 const resetTokenStore = new Map();
@@ -105,6 +146,150 @@ const issueAndPersistTokens = async (user) => {
 };
 
 const isExpired = (date) => new Date(date).getTime() <= Date.now();
+
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_UPLOAD_SIZE_BYTES },
+  fileFilter: (req, file, cb) => {
+    if (!file?.mimetype?.startsWith("image/")) {
+      cb(new Error("Only image files are allowed"));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+export const uploadProfileImage = (req, res, next) => {
+  imageUpload.single("image")(req, res, (error) => {
+    if (!error) {
+      return next();
+    }
+
+    if (error instanceof multer.MulterError) {
+      return res.status(400).json({
+        message:
+          error.code === "LIMIT_FILE_SIZE"
+            ? `Image is too large. Max allowed size is ${Math.round(
+                MAX_UPLOAD_SIZE_BYTES / (1024 * 1024),
+              )}MB`
+            : "Invalid image upload request",
+        error: error.message,
+      });
+    }
+
+    return res.status(400).json({
+      message: error.message || "Invalid image upload request",
+    });
+  });
+};
+
+export const uploadProfileImageToCloudinary = async (req, res) => {
+  try {
+    if (!CLOUDINARY_UPLOAD_URL) {
+      return res.status(500).json({
+        message: "CLOUDINARY_UPLOAD_URL is not configured",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "image file is required" });
+    }
+
+    const compressedBuffer = await sharp(req.file.buffer)
+      .rotate()
+      .resize({
+        width: 1024,
+        height: 1024,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .jpeg({
+        quality: 80,
+        mozjpeg: true,
+      })
+      .toBuffer();
+
+    const cloudinaryConfig = resolveCloudinaryConfig();
+    if (!cloudinaryConfig) {
+      return res.status(500).json({
+        message:
+          "CLOUDINARY_UPLOAD_URL is invalid. Use either a full HTTPS upload endpoint or cloudinary://<api_key>:<api_secret>@<cloud_name>",
+      });
+    }
+
+    const formData = new FormData();
+    const fileName = `${crypto.randomUUID()}.jpg`;
+    const imageBlob = new Blob([compressedBuffer], { type: "image/jpeg" });
+
+    formData.append("file", imageBlob, fileName);
+
+    if (CLOUDINARY_FOLDER) {
+      formData.append("folder", CLOUDINARY_FOLDER);
+    }
+
+    if (cloudinaryConfig.apiKey && cloudinaryConfig.apiSecret) {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const paramsToSign = [];
+
+      if (CLOUDINARY_FOLDER) {
+        paramsToSign.push(`folder=${CLOUDINARY_FOLDER}`);
+      }
+      paramsToSign.push(`timestamp=${timestamp}`);
+
+      const signature = sha1(
+        `${paramsToSign.join("&")}${cloudinaryConfig.apiSecret}`,
+      );
+
+      formData.append("timestamp", String(timestamp));
+      formData.append("api_key", cloudinaryConfig.apiKey);
+      formData.append("signature", signature);
+    }
+
+    const uploadResponse = await fetch(cloudinaryConfig.uploadUrl, {
+      method: "POST",
+      body: formData,
+    });
+
+    const uploadResult = await uploadResponse.json();
+
+    if (!uploadResponse.ok) {
+      return res.status(502).json({
+        message: "Failed to upload image to Cloudinary",
+        error:
+          uploadResult?.error?.message ||
+          uploadResult?.message ||
+          "Cloudinary upload error",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Image uploaded successfully",
+      imageUrl: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
+      width: uploadResult.width,
+      height: uploadResult.height,
+      format: uploadResult.format,
+      bytes: uploadResult.bytes,
+    });
+  } catch (error) {
+    if (error instanceof multer.MulterError) {
+      return res.status(400).json({
+        message:
+          error.code === "LIMIT_FILE_SIZE"
+            ? `Image is too large. Max allowed size is ${Math.round(
+                MAX_UPLOAD_SIZE_BYTES / (1024 * 1024),
+              )}MB`
+            : "Invalid image upload request",
+        error: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      message: "Server error during image upload",
+      error: error.message,
+    });
+  }
+};
 
 export const register = async (req, res) => {
   try {

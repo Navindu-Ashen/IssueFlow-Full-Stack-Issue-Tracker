@@ -7,6 +7,8 @@ import {
   requestPasswordResetOtp,
   validatePasswordResetOtp,
   resetPasswordWithResetToken,
+  uploadProfileImage,
+  uploadProfileImageToCloudinary,
 } from "../controllers/auth.controller.js";
 
 const router = Router();
@@ -153,6 +155,43 @@ router.post("/refresh-token", refreshToken);
  *         description: Server error during logout
  */
 router.post("/logout", logout);
+
+/**
+ * @swagger
+ * /v1/api/auth/upload-image:
+ *   post:
+ *     summary: Upload and compress profile image, then store on Cloudinary
+ *     tags:
+ *       - Auth
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - image
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image file to upload
+ *     responses:
+ *       200:
+ *         description: Image uploaded successfully
+ *       400:
+ *         description: Invalid upload request or missing image
+ *       500:
+ *         description: Server error during image upload
+ *       502:
+ *         description: Failed to upload image to Cloudinary
+ */
+router.post(
+  "/upload-image",
+  uploadProfileImage,
+  uploadProfileImageToCloudinary,
+);
 
 /**
  * @swagger
