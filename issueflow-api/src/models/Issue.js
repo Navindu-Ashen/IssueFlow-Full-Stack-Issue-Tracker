@@ -25,7 +25,7 @@ const IssueSchema = new mongoose.Schema(
       required: true,
     },
     assignee: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String,
       ref: "User",
       default: null,
     },

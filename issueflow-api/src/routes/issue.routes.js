@@ -43,8 +43,7 @@ const router = Router();
  *                 example: Major
  *               assignee:
  *                 type: string
- *                 description: User ObjectId
- *                 example: 663f1b2e4f1a2b3c4d5e6f7a
+ *                 example: Network Technician
  *     responses:
  *       201:
  *         description: Issue created successfully

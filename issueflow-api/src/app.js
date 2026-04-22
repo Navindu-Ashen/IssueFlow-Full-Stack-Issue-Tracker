@@ -5,6 +5,7 @@ import { connectDB } from "./config/db.config.js";
 import authRoutes from "./routes/auth.routes.js";
 import issueRoutes from "./routes/issue.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
+import activityRoutes from "./routes/activity.routes.js";
 
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger.config.js";
@@ -26,6 +27,7 @@ app.get("/api/health", (req, res) => {
 app.use("/v1/api/auth", authRoutes);
 app.use("/v1/api/issues", issueRoutes);
 app.use("/v1/api/analytics", analyticsRoutes);
+app.use("/v1/api/activities", activityRoutes);
 
 const PORT = process.env.PORT || 3001;
 

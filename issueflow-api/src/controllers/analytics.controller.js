@@ -1,4 +1,3 @@
-// issueflow-api/src/controllers/analytics.controller.js
 import Issue from "../models/Issue.js";
 
 const getLast7DaysRangeUtc = () => {
@@ -14,7 +13,7 @@ const buildLast7DayKeys = (startDateUtc) => {
   for (let i = 0; i < 7; i += 1) {
     const d = new Date(startDateUtc);
     d.setUTCDate(startDateUtc.getUTCDate() + i);
-    keys.push(d.toISOString().slice(0, 10)); // YYYY-MM-DD
+    keys.push(d.toISOString().slice(0, 10));
   }
   return keys;
 };

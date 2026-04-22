@@ -1,0 +1,44 @@
+name: Deploy API to Contabo
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy project files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "/opt/issueflow/issueflow-api"
+
+      - name: Build and restart Docker services
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /opt/issueflow/issueflow-api
+
+            if [ -n "${{ secrets.API_ENV_FILE }}" ]; then
+              cat > .env << 'EOF'
+            ${{ secrets.API_ENV_FILE }}
+            EOF
+            fi
+
+            docker compose down || true
+            docker compose up -d --build --force-recreate --remove-orphans
+            docker image prune -f

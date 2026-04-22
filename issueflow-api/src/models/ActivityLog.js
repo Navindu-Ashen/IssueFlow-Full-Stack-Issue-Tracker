@@ -22,4 +22,9 @@ const ActivityLogSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+ActivityLogSchema.index({ createdAt: -1 });
+ActivityLogSchema.index({ issueId: 1, createdAt: -1 });
+ActivityLogSchema.index({ userId: 1, createdAt: -1 });
+ActivityLogSchema.index({ action: 1, createdAt: -1 });
+
 export default mongoose.model("ActivityLog", ActivityLogSchema);
