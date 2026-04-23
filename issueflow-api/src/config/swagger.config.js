@@ -1,5 +1,8 @@
 import swaggerJSDoc from "swagger-jsdoc";
 
+const swaggerServerUrl =
+  process.env.SWAGGER_SERVER_URL || process.env.PUBLIC_API_URL || "/";
+
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -11,8 +14,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `http://localhost:${process.env.PORT || 3001}`,
-        description: "Development Server",
+        url: swaggerServerUrl,
+        description: "API Server",
       },
     ],
     components: {
