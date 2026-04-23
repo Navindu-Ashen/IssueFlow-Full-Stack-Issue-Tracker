@@ -64,8 +64,6 @@ const router = Router();
  *         description: Invalid query parameters
  *       401:
  *         description: Unauthorized
- *       500:
- *         description: Server error
  */
 router.get("/", protect, getActivities);
 
