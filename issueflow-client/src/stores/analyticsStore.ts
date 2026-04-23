@@ -7,6 +7,7 @@ type AnalyticsState = {
   issueStatusCounts: IssueStatusCounts | null;
   isLoading: boolean;
   error: string | null;
+  hasFetched: boolean;
   fetchAnalytics: () => Promise<void>;
 };
 
@@ -15,6 +16,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
   issueStatusCounts: null,
   isLoading: false,
   error: null,
+  hasFetched: false,
 
   fetchAnalytics: async () => {
     set({ isLoading: true, error: null });
@@ -23,6 +25,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
       set({
         issuesCreatedLast7Days: data.issuesCreatedLast7Days,
         issueStatusCounts: data.issueStatusCounts,
+        hasFetched: true,
       });
     } catch (err) {
       set({

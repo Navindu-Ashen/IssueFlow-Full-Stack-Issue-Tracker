@@ -13,6 +13,7 @@ import LoginPage from "@/pages/login/page";
 import SignupPage from "@/pages/signup/page";
 import DashboardPage from "@/pages/dashboard/page";
 import IssuesPage from "@/pages/issues/page";
+import ActivitiesPage from "@/pages/activities/page";
 import PrivacyPoliciesPage from "@/pages/privacy-policies/page";
 import TermsAndConditionsPage from "@/pages/terms-and-conditions/page";
 import NotFoundPage from "@/pages/not-found/page";
@@ -26,6 +27,11 @@ function App() {
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/privacy-policies" element={<PrivacyPoliciesPage />} />
+          <Route
+            path="/terms-and-conditions"
+            element={<TermsAndConditionsPage />}
+          />
         </Route>
 
         <Route
@@ -38,11 +44,7 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/issues" element={<IssuesPage />} />
-          <Route path="/privacy-policies" element={<PrivacyPoliciesPage />} />
-          <Route
-            path="/terms-and-conditions"
-            element={<TermsAndConditionsPage />}
-          />
+          <Route path="/activities" element={<ActivitiesPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

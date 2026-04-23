@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Issue } from "@/types";
 import * as issueService from "@/services/issueService";
+import { useActivityStore } from "@/stores/activityStore";
 
 type IssueState = {
   issues: Issue[];
@@ -13,6 +14,7 @@ type IssueState = {
   search: string;
   statusFilter: string;
   priorityFilter: string;
+  hasFetched: boolean;
 
   fetchIssues: (overrides?: { page?: number; limit?: number }) => Promise<void>;
   setPage: (page: number) => void;
@@ -41,6 +43,7 @@ export const useIssueStore = create<IssueState>((set, get) => ({
   search: "",
   statusFilter: "",
   priorityFilter: "",
+  hasFetched: false,
 
   fetchIssues: async (overrides) => {
     const state = get();
@@ -58,6 +61,7 @@ export const useIssueStore = create<IssueState>((set, get) => ({
         page: res.page,
         totalPages: res.totalPages,
         totalCount: res.totalCount,
+        hasFetched: true,
       });
     } catch (err) {
       set({
@@ -99,6 +103,9 @@ export const useIssueStore = create<IssueState>((set, get) => ({
       await issueService.createIssue(data);
       set({ page: 1 });
       await get().fetchIssues({ page: 1 });
+      if (useActivityStore.getState().hasFetched) {
+        useActivityStore.getState().fetchActivities();
+      }
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : "Failed to create issue",
@@ -114,6 +121,9 @@ export const useIssueStore = create<IssueState>((set, get) => ({
     try {
       await issueService.updateIssueStatus(id, status);
       await get().fetchIssues();
+      if (useActivityStore.getState().hasFetched) {
+        useActivityStore.getState().fetchActivities();
+      }
     } catch (err) {
       set({
         error:
@@ -128,6 +138,9 @@ export const useIssueStore = create<IssueState>((set, get) => ({
     try {
       await issueService.deleteIssue(id);
       await get().fetchIssues();
+      if (useActivityStore.getState().hasFetched) {
+        useActivityStore.getState().fetchActivities();
+      }
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : "Failed to delete issue",

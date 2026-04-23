@@ -56,6 +56,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
       setIsSubmitting(true);
       const res = await authService.login(values);
       setUser(res.user);
+      toast.success("Login successful. Welcome back!");
       navigate("/dashboard");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login failed");

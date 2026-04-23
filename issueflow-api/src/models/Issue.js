@@ -26,7 +26,6 @@ const IssueSchema = new mongoose.Schema(
     },
     assignee: {
       type: String,
-      ref: "User",
       default: null,
     },
   },

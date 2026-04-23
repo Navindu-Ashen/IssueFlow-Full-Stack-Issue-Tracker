@@ -19,6 +19,7 @@ import {
   LayoutDashboardIcon,
   ListTodoIcon,
   ShieldCheckIcon,
+  ActivityIcon,
 } from "lucide-react";
 import { Separator } from "./ui/separator";
 import { useAuthStore } from "@/stores/authStore";
@@ -84,6 +85,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <Separator />
       <SidebarContent>
         <NavMain items={data.navMain} />
+        <Separator className="mx-4 my-2 w-[calc(100%-2rem)] opacity-50" />
+        <NavMain items={[{
+          title: "Recent Activities",
+          url: "/activities",
+          icon: <ActivityIcon />,
+        }]} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <Separator />

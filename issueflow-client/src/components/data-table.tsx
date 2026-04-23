@@ -1,8 +1,10 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { IssueViewDialog } from "@/components/issue-view-dialog";
 import {
   Table,
   TableBody,
@@ -14,13 +16,13 @@ import {
 import { useIssueStore } from "@/stores/issueStore";
 import type {
   Issue,
-  IssueStatus,
-  IssueSeverity,
   IssuePriority,
+  IssueSeverity,
+  IssueStatus,
   User,
 } from "@/types";
 
-function getStatusBadgeClass(status: IssueStatus) {
+export function getStatusBadgeClass(status: IssueStatus) {
   switch (status) {
     case "Open":
       return "bg-blue-50 text-blue-700 border-blue-200";
@@ -35,7 +37,7 @@ function getStatusBadgeClass(status: IssueStatus) {
   }
 }
 
-function getSeverityBadgeClass(severity: IssueSeverity) {
+export function getSeverityBadgeClass(severity: IssueSeverity) {
   switch (severity) {
     case "Minor":
       return "bg-slate-100 text-slate-700 border-slate-300";
@@ -48,7 +50,7 @@ function getSeverityBadgeClass(severity: IssueSeverity) {
   }
 }
 
-function getPriorityBadgeClass(priority: IssuePriority) {
+export function getPriorityBadgeClass(priority: IssuePriority) {
   switch (priority) {
     case "Low":
       return "bg-slate-100 text-slate-700 border-slate-300";
@@ -61,22 +63,44 @@ function getPriorityBadgeClass(priority: IssuePriority) {
   }
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
+export function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
-function getCreatorName(createdBy: User | string): string {
-  if (typeof createdBy === "object" && createdBy !== null)
-    return createdBy.name;
-  return "Unknown";
+export function getUserDisplayName(user: User | string | null): string {
+  if (!user) return "Unassigned";
+  if (typeof user === "object") return user.name;
+  return user;
 }
 
 export function DataTable() {
+  const navigate = useNavigate();
   const { issues, isLoading } = useIssueStore();
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+
+  const isDialogOpen = useMemo(() => selectedIssue !== null, [selectedIssue]);
+
+  const handleOpenIssueDetails = (issue: Issue) => {
+    setSelectedIssue(issue);
+  };
+
+  const handleNavigateToIssues = () => {
+    const id = selectedIssue?._id;
+    setSelectedIssue(null);
+
+    if (id) {
+      navigate("/issues", { state: { issueId: id } });
+      return;
+    }
+
+    navigate("/issues");
+  };
 
   return (
     <div className="px-4 lg:px-6">
@@ -87,7 +111,7 @@ export function DataTable() {
               Latest Issues
             </h2>
             <p className="text-sm text-muted-foreground">
-              Recent issues across your project
+              Click any issue row to view full details
             </p>
           </div>
 
@@ -98,7 +122,6 @@ export function DataTable() {
             <Link to="/issues">View All Issues</Link>
           </Button>
         </div>
-
 
         <div className="overflow-x-auto">
           <Table>
@@ -125,7 +148,19 @@ export function DataTable() {
                 </TableRow>
               ) : issues.length > 0 ? (
                 issues.map((issue: Issue) => (
-                  <TableRow key={issue._id}>
+                  <TableRow
+                    key={issue._id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenIssueDetails(issue)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleOpenIssueDetails(issue);
+                      }
+                    }}
+                    className="cursor-pointer transition-colors hover:bg-[#9D5FD4]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9D5FD4]/40"
+                  >
                     <TableCell className="max-w-[320px]">
                       <div className="font-medium">{issue.title}</div>
                       <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
@@ -160,8 +195,8 @@ export function DataTable() {
                       </Badge>
                     </TableCell>
 
-                    <TableCell>{getCreatorName(issue.createdBy)}</TableCell>
-                    <TableCell>{formatDate(issue.createdAt)}</TableCell>
+                    <TableCell>{getUserDisplayName(issue.createdBy)}</TableCell>
+                    <TableCell>{formatDateTime(issue.createdAt)}</TableCell>
                   </TableRow>
                 ))
               ) : (
@@ -178,6 +213,13 @@ export function DataTable() {
           </Table>
         </div>
       </div>
+
+      <IssueViewDialog
+        issue={selectedIssue}
+        open={isDialogOpen}
+        onOpenChange={(open) => !open && setSelectedIssue(null)}
+        onMoreDetails={handleNavigateToIssues}
+      />
     </div>
   );
 }

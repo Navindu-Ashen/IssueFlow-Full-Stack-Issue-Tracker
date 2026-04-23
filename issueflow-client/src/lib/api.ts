@@ -23,15 +23,21 @@ export async function apiClient<T>(
   if (res.ok) return res.json() as Promise<T>;
 
   if (res.status === 401 && !endpoint.includes("/refresh-token")) {
-    const refreshed = await silentRefresh();
-    if (refreshed) {
-      const retry = await fetchWithAuth(endpoint, options);
-      if (retry.ok) return retry.json() as Promise<T>;
-    }
+    const hasAuthTokens = Boolean(
+      getCookie(ACCESS_TOKEN_KEY) || getCookie(REFRESH_TOKEN_KEY),
+    );
 
-    removeCookie(ACCESS_TOKEN_KEY);
-    removeCookie(REFRESH_TOKEN_KEY);
-    window.location.href = "/login";
+    if (hasAuthTokens) {
+      const refreshed = await silentRefresh();
+      if (refreshed) {
+        const retry = await fetchWithAuth(endpoint, options);
+        if (retry.ok) return retry.json() as Promise<T>;
+      }
+
+      removeCookie(ACCESS_TOKEN_KEY);
+      removeCookie(REFRESH_TOKEN_KEY);
+      window.location.href = "/login";
+    }
   }
   const error = await res.json().catch(() => ({ message: res.statusText }));
   throw new Error(error.message ?? "Something went wrong");

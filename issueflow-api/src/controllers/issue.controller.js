@@ -39,7 +39,10 @@ export const createIssue = async (req, res) => {
 export const getIssues = async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 10));
+    const limit = Math.max(
+      1,
+      Math.min(100, parseInt(req.query.limit, 10) || 10),
+    );
     const { search, status, priority } = req.query;
 
     const filter = {};
@@ -59,7 +62,6 @@ export const getIssues = async (req, res) => {
     const [issues, totalCount] = await Promise.all([
       Issue.find(filter)
         .populate("createdBy", USER_POPULATE_FIELDS)
-        .populate("assignee", USER_POPULATE_FIELDS)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -87,9 +89,10 @@ export const getIssueById = async (req, res) => {
       return res.status(400).json({ message: "Invalid issue ID" });
     }
 
-    const issue = await Issue.findById(id)
-      .populate("createdBy", USER_POPULATE_FIELDS)
-      .populate("assignee", USER_POPULATE_FIELDS);
+    const issue = await Issue.findById(id).populate(
+      "createdBy",
+      USER_POPULATE_FIELDS,
+    );
 
     if (!issue) {
       return res.status(404).json({ message: "Issue not found" });
@@ -117,9 +120,7 @@ export const updateIssue = async (req, res) => {
       id,
       { title, description, assignee },
       { new: true, runValidators: true },
-    )
-      .populate("createdBy", USER_POPULATE_FIELDS)
-      .populate("assignee", USER_POPULATE_FIELDS);
+    ).populate("createdBy", USER_POPULATE_FIELDS);
 
     if (!issue) {
       return res.status(404).json({ message: "Issue not found" });
@@ -150,10 +151,10 @@ export const updateIssueStatus = async (req, res) => {
 
     const { status } = req.body;
 
-    if (!status || !["Resolved", "Closed"].includes(status)) {
+    if (!status || !["In Progress", "Resolved", "Closed"].includes(status)) {
       return res
         .status(400)
-        .json({ message: "status must be 'Resolved' or 'Closed'" });
+        .json({ message: "status must be 'In Progress' or 'Resolved' or 'Closed'" });
     }
 
     const issue = await Issue.findById(id);
@@ -195,11 +196,14 @@ export const deleteIssue = async (req, res) => {
       return res.status(404).json({ message: "Issue not found" });
     }
 
-    await ActivityLog.deleteMany({ issueId: id });
+    await ActivityLog.create({
+      issueId: issue._id,
+      userId: req.user._id,
+      action: "DELETED",
+      details: `Issue "${issue.title}" deleted`,
+    });
 
-    return res
-      .status(200)
-      .json({ message: "Issue deleted successfully" });
+    return res.status(200).json({ message: "Issue deleted successfully" });
   } catch (error) {
     return res
       .status(500)

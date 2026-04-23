@@ -56,3 +56,29 @@ export type AnalyticsResponse = {
   issuesCreatedLast7Days: IssuesCreatedLast7Days;
   issueStatusCounts: IssueStatusCounts;
 };
+
+export type ActivityAction = "CREATED" | "STATUS_CHANGED" | "DELETED" | string;
+
+export type Activity = {
+  _id: string;
+  issueId: {
+    _id: string;
+    title: string;
+    status: IssueStatus;
+    priority: IssuePriority;
+    severity: IssueSeverity;
+  };
+  userId: User;
+  action: ActivityAction;
+  details: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ActivitiesResponse = {
+  activities: Activity[];
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalCount: number;
+};

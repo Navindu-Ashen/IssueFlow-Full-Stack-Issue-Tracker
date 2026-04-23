@@ -4,7 +4,7 @@ import ActivityLog from "../models/ActivityLog.js";
 const USER_POPULATE_FIELDS = "name email profilePictureUrl";
 const ISSUE_POPULATE_FIELDS = "title status priority severity";
 
-const ALLOWED_ACTIONS = ["CREATED", "UPDATED", "STATUS_CHANGED"];
+const ALLOWED_ACTIONS = ["CREATED", "UPDATED", "STATUS_CHANGED", "DELETED"];
 
 const parseDateQueryParam = (value, isEndOfDay = false) => {
   const parsedDate = new Date(value);

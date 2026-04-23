@@ -23,6 +23,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useIssueStore } from "@/stores/issueStore";
 import type { IssuePriority, IssueSeverity } from "@/types";
+import { toast } from "sonner";
 
 const TECHNICIANS = [
   {
@@ -81,6 +82,7 @@ export function CreateIssueDialog({
         severity: newSeverity,
         assignee: newAssignee || undefined,
       });
+      toast.success("Issue created successfully");
       onOpenChange(false);
       setNewTitle("");
       setNewDescription("");
@@ -88,7 +90,7 @@ export function CreateIssueDialog({
       setNewSeverity("Major");
       setNewAssignee("");
     } catch {
-      // error set in store
+      toast.error("Failed to create issue");
     } finally {
       setIsCreateLoading(false);
     }

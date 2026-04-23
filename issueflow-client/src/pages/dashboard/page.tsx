@@ -7,12 +7,14 @@ import { useIssueStore } from "@/stores/issueStore";
 
 export default function DashboardPage() {
   const fetchAnalytics = useAnalyticsStore((s) => s.fetchAnalytics);
+  const analyticsHasFetched = useAnalyticsStore((s) => s.hasFetched);
   const fetchIssues = useIssueStore((s) => s.fetchIssues);
+  const issuesHasFetched = useIssueStore((s) => s.hasFetched);
 
   useEffect(() => {
-    fetchAnalytics();
-    fetchIssues({ page: 1, limit: 10 });
-  }, [fetchAnalytics, fetchIssues]);
+    if (!analyticsHasFetched) fetchAnalytics();
+    if (!issuesHasFetched) fetchIssues({ page: 1, limit: 10 });
+  }, [fetchAnalytics, analyticsHasFetched, fetchIssues, issuesHasFetched]);
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
