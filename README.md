@@ -8,6 +8,11 @@
   A modern issue and task management platform with secure authentication, analytics, and full CRUD workflows.
 </p>
 
+<p align="center">
+  <strong>Frontend:</strong> <a href="https://issueflow.navinduashen.com/">https://issueflow.navinduashen.com/</a><br />
+  <strong>Backend Documentation:</strong> <a href="https://api-issueflow.navinduashen.com/api-docs/">https://api-issueflow.navinduashen.com/api-docs/</a>
+</p>
+
 ---
 
 ## Table of Contents
@@ -232,25 +237,25 @@ Frontend default URL (Vite): usually `http://localhost:5173`
 
 ## Backend (`issueflow-api/.env`)
 
-| Variable | Required | Description | Example |
-|---|---:|---|---|
-| `PORT` | No | API port (defaults to `3001`) | `3001` |
-| `MONGO_URI` | Yes | MongoDB connection string | `mongodb://localhost:27017/issueflow` |
-| `JWT_SECRET` | Yes | Access token signing secret (also fallback for refresh secret) | `super-secret` |
-| `JWT_ACCESS_EXPIRES_IN` | No | Access token TTL | `15m` |
-| `JWT_REFRESH_SECRET` | No | Refresh token signing secret (falls back to `JWT_SECRET`) | `refresh-secret` |
-| `JWT_REFRESH_EXPIRES_IN` | No | Refresh token TTL | `7d` |
-| `OTP_EXPIRY_MINUTES` | No | Forgot-password OTP expiry | `10` |
-| `RESET_TOKEN_EXPIRY_MINUTES` | No | Password reset token expiry | `15` |
-| `CLOUDINARY_UPLOAD_URL` | Conditionally | Cloudinary upload config (required for `/upload-image`) | `cloudinary://<api_key>:<api_secret>@<cloud_name>` |
-| `CLOUDINARY_FOLDER` | No | Cloudinary folder for uploaded images | `issueflow/profiles` |
-| `IMAGE_UPLOAD_MAX_SIZE_BYTES` | No | Max upload image size bytes | `5242880` |
+| Variable                      |      Required | Description                                                    | Example                                            |
+| ----------------------------- | ------------: | -------------------------------------------------------------- | -------------------------------------------------- |
+| `PORT`                        |            No | API port (defaults to `3001`)                                  | `3001`                                             |
+| `MONGO_URI`                   |           Yes | MongoDB connection string                                      | `mongodb://localhost:27017/issueflow`              |
+| `JWT_SECRET`                  |           Yes | Access token signing secret (also fallback for refresh secret) | `super-secret`                                     |
+| `JWT_ACCESS_EXPIRES_IN`       |            No | Access token TTL                                               | `15m`                                              |
+| `JWT_REFRESH_SECRET`          |            No | Refresh token signing secret (falls back to `JWT_SECRET`)      | `refresh-secret`                                   |
+| `JWT_REFRESH_EXPIRES_IN`      |            No | Refresh token TTL                                              | `7d`                                               |
+| `OTP_EXPIRY_MINUTES`          |            No | Forgot-password OTP expiry                                     | `10`                                               |
+| `RESET_TOKEN_EXPIRY_MINUTES`  |            No | Password reset token expiry                                    | `15`                                               |
+| `CLOUDINARY_UPLOAD_URL`       | Conditionally | Cloudinary upload config (required for `/upload-image`)        | `cloudinary://<api_key>:<api_secret>@<cloud_name>` |
+| `CLOUDINARY_FOLDER`           |            No | Cloudinary folder for uploaded images                          | `issueflow/profiles`                               |
+| `IMAGE_UPLOAD_MAX_SIZE_BYTES` |            No | Max upload image size bytes                                    | `5242880`                                          |
 
 ## Frontend (`issueflow-client/.env`)
 
-| Variable | Required | Description | Example |
-|---|---:|---|---|
-| `VITE_API_BASE_URL` | Yes | Base URL for backend requests | `http://localhost:3001` |
+| Variable            | Required | Description                   | Example                 |
+| ------------------- | -------: | ----------------------------- | ----------------------- |
+| `VITE_API_BASE_URL` |      Yes | Base URL for backend requests | `http://localhost:3001` |
 
 ---
 
@@ -274,27 +279,27 @@ Health check endpoint:
 - `POST /v1/api/auth/login`
 - `POST /v1/api/auth/refresh-token`
 - `POST /v1/api/auth/logout`
-- `POST /v1/api/auth/upload-image` *(multipart: `image`)*
+- `POST /v1/api/auth/upload-image` _(multipart: `image`)_
 - `POST /v1/api/auth/forgot-password/request-otp`
 - `POST /v1/api/auth/forgot-password/validate-otp`
 - `POST /v1/api/auth/forgot-password/reset-password`
 
 ## Issues
 
-- `POST /v1/api/issues` *(protected)*
-- `GET /v1/api/issues` *(protected, supports `page`, `limit`, `search`, `status`, `priority`)*
-- `GET /v1/api/issues/:id` *(protected)*
-- `PUT /v1/api/issues/:id` *(protected)*
-- `PATCH /v1/api/issues/:id/status` *(protected; allowed: `Resolved`, `Closed`)*
-- `DELETE /v1/api/issues/:id` *(protected)*
+- `POST /v1/api/issues` _(protected)_
+- `GET /v1/api/issues` _(protected, supports `page`, `limit`, `search`, `status`, `priority`)_
+- `GET /v1/api/issues/:id` _(protected)_
+- `PUT /v1/api/issues/:id` _(protected)_
+- `PATCH /v1/api/issues/:id/status` _(protected; allowed: `Resolved`, `Closed`)_
+- `DELETE /v1/api/issues/:id` _(protected)_
 
 ## Analytics
 
-- `GET /v1/api/analytics` *(protected)*
+- `GET /v1/api/analytics` _(protected)_
 
 ## Activities
 
-- `GET /v1/api/activities` *(protected; supports `page`, `limit`, `issueId`, `userId`, `action`, `from`, `to`)*
+- `GET /v1/api/activities` _(protected; supports `page`, `limit`, `issueId`, `userId`, `action`, `from`, `to`)_
 
 ---
 
